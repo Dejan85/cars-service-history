@@ -8,6 +8,8 @@ import {
   Grid,
   Button,
   Divider,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import { ArrowBack, Add, Edit } from "@mui/icons-material";
 import Link from "next/link";
@@ -15,6 +17,7 @@ import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 import ServiceList from "@/components/ServiceList";
 import ServiceForm, { ServiceFormData } from "@/components/ServiceForm";
+import VehicleForm, { VehicleFormData } from "@/components/VehicleForm";
 import dayjs from "dayjs";
 
 interface Vehicle {
@@ -46,18 +49,31 @@ export default function VehicleDetailPage() {
 
   const [vehicle, setVehicle] = useState<Vehicle | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
+  const [vehicleFormOpen, setVehicleFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
 
   const fetchVehicle = async () => {
     try {
+      setLoading(true);
+      setError(null);
       const response = await fetch(`/api/vehicles/${vehicleId}`);
-      if (response.ok) {
-        const data = await response.json();
-        setVehicle(data);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("Vozilo nije pronađeno");
+        }
+        throw new Error(`Greška: ${response.status}`);
       }
+
+      const data = await response.json();
+      setVehicle(data);
     } catch (error) {
       console.error("Failed to fetch vehicle:", error);
+      setError(
+        error instanceof Error ? error.message : "Greška pri učitavanju vozila",
+      );
     } finally {
       setLoading(false);
     }
@@ -139,6 +155,23 @@ export default function VehicleDetailPage() {
     setEditingService(null);
   };
 
+  const handleUpdateVehicle = async (data: VehicleFormData) => {
+    try {
+      const response = await fetch(`/api/vehicles/${vehicleId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+
+      if (response.ok) {
+        setVehicleFormOpen(false);
+        fetchVehicle();
+      }
+    } catch (error) {
+      console.error("Failed to update vehicle:", error);
+    }
+  };
+
   const calculateTotalCost = () => {
     if (!vehicle) return 0;
     return vehicle.services.reduce((sum, service) => {
@@ -150,18 +183,33 @@ export default function VehicleDetailPage() {
   if (loading) {
     return (
       <Container maxWidth="lg">
-        <Box sx={{ mt: 4 }}>
-          <Typography>Učitavanje...</Typography>
+        <Box
+          sx={{
+            display: "flex",
+            justifyContent: "center",
+            alignItems: "center",
+            minHeight: "60vh",
+          }}
+        >
+          <CircularProgress size={60} />
         </Box>
       </Container>
     );
   }
 
-  if (!vehicle) {
+  if (error || !vehicle) {
     return (
       <Container maxWidth="lg">
         <Box sx={{ mt: 4 }}>
-          <Typography>Vozilo nije pronađeno</Typography>
+          <Button
+            component={Link}
+            href="/vehicles"
+            startIcon={<ArrowBack />}
+            sx={{ mb: 2 }}
+          >
+            Nazad na listu
+          </Button>
+          <Alert severity="error">{error || "Vozilo nije pronađeno"}</Alert>
         </Box>
       </Container>
     );
@@ -192,8 +240,7 @@ export default function VehicleDetailPage() {
               {vehicle.make} {vehicle.model}
             </Typography>
             <Button
-              component={Link}
-              href={`/vehicles/${vehicle.id}/edit`}
+              onClick={() => setVehicleFormOpen(true)}
               startIcon={<Edit />}
               variant="outlined"
             >
@@ -323,6 +370,19 @@ export default function VehicleDetailPage() {
               }
             : undefined
         }
+      />
+
+      <VehicleForm
+        open={vehicleFormOpen}
+        onClose={() => setVehicleFormOpen(false)}
+        onSubmit={handleUpdateVehicle}
+        initialData={{
+          make: vehicle.make,
+          model: vehicle.model,
+          year: vehicle.year.toString(),
+          vin: vehicle.vin || "",
+          plateNumber: vehicle.plateNumber || "",
+        }}
       />
     </Container>
   );

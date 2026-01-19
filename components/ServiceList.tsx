@@ -12,9 +12,11 @@ import {
   Typography,
   Box,
   Chip,
+  TableSortLabel,
 } from "@mui/material";
 import { Edit, Delete } from "@mui/icons-material";
 import dayjs from "dayjs";
+import { useState, useMemo } from "react";
 
 interface Service {
   id: string;
@@ -40,12 +42,18 @@ interface ServiceListProps {
   showVehicle?: boolean;
 }
 
+type SortField = "date" | "mileage" | "items" | "cost";
+type SortOrder = "asc" | "desc";
+
 export default function ServiceList({
   services,
   onEdit,
   onDelete,
   showVehicle = false,
 }: ServiceListProps) {
+  const [sortField, setSortField] = useState<SortField>("date");
+  const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
+
   if (services.length === 0) {
     return (
       <Box sx={{ textAlign: "center", py: 4 }}>
@@ -62,22 +70,86 @@ export default function ServiceList({
     return service.cost + itemsCost;
   };
 
+  const handleSort = (field: SortField) => {
+    if (sortField === field) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortField(field);
+      setSortOrder("desc");
+    }
+  };
+
+  const sortedServices = useMemo(() => {
+    return [...services].sort((a, b) => {
+      let comparison = 0;
+
+      switch (sortField) {
+        case "date":
+          comparison = new Date(a.date).getTime() - new Date(b.date).getTime();
+          break;
+        case "mileage":
+          comparison = a.mileage - b.mileage;
+          break;
+        case "items":
+          comparison = (a.items?.length || 0) - (b.items?.length || 0);
+          break;
+        case "cost":
+          comparison = calculateTotalCost(a) - calculateTotalCost(b);
+          break;
+      }
+
+      return sortOrder === "asc" ? comparison : -comparison;
+    });
+  }, [services, sortField, sortOrder]);
+
   return (
     <TableContainer component={Paper}>
       <Table>
         <TableHead>
           <TableRow>
-            <TableCell>Datum</TableCell>
+            <TableCell>
+              <TableSortLabel
+                active={sortField === "date"}
+                direction={sortField === "date" ? sortOrder : "asc"}
+                onClick={() => handleSort("date")}
+              >
+                Datum
+              </TableSortLabel>
+            </TableCell>
             {showVehicle && <TableCell>Vozilo</TableCell>}
-            <TableCell>Kilometraža</TableCell>
+            <TableCell>
+              <TableSortLabel
+                active={sortField === "mileage"}
+                direction={sortField === "mileage" ? sortOrder : "asc"}
+                onClick={() => handleSort("mileage")}
+              >
+                Kilometraža
+              </TableSortLabel>
+            </TableCell>
             <TableCell>Opis</TableCell>
-            <TableCell align="center">Stavki</TableCell>
-            <TableCell align="right">Trošak (€)</TableCell>
+            <TableCell align="center">
+              <TableSortLabel
+                active={sortField === "items"}
+                direction={sortField === "items" ? sortOrder : "asc"}
+                onClick={() => handleSort("items")}
+              >
+                Stavki
+              </TableSortLabel>
+            </TableCell>
+            <TableCell align="right">
+              <TableSortLabel
+                active={sortField === "cost"}
+                direction={sortField === "cost" ? sortOrder : "asc"}
+                onClick={() => handleSort("cost")}
+              >
+                Trošak (€)
+              </TableSortLabel>
+            </TableCell>
             <TableCell align="right">Akcije</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
-          {services.map((service) => (
+          {sortedServices.map((service) => (
             <TableRow key={service.id} hover>
               <TableCell>{dayjs(service.date).format("DD.MM.YYYY")}</TableCell>
               {showVehicle && (

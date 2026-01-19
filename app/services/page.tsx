@@ -7,6 +7,8 @@ import {
   Button,
   MenuItem,
   TextField,
+  CircularProgress,
+  Alert,
 } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import { useState, useEffect } from "react";
@@ -42,6 +44,7 @@ export default function ServicesPage() {
   const [services, setServices] = useState<Service[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
@@ -49,28 +52,43 @@ export default function ServicesPage() {
   const fetchVehicles = async () => {
     try {
       const response = await fetch("/api/vehicles");
-      if (response.ok) {
-        const data = await response.json();
-        setVehicles(data);
+      if (!response.ok) {
+        throw new Error(`Greška: ${response.status}`);
       }
+      const data = await response.json();
+      setVehicles(data);
     } catch (error) {
       console.error("Failed to fetch vehicles:", error);
+      setError(
+        error instanceof Error ? error.message : "Greška pri učitavanju vozila",
+      );
     }
   };
 
   const fetchServices = async (vehicleId?: string) => {
     try {
+      setLoading(true);
+      setError(null);
       const url = vehicleId
         ? `/api/services?vehicleId=${vehicleId}`
         : "/api/services";
 
       const response = await fetch(url);
-      if (response.ok) {
-        const data = await response.json();
-        setServices(data);
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("API endpoint nije pronađen");
+        }
+        throw new Error(`Greška: ${response.status}`);
       }
+      const data = await response.json();
+      setServices(data);
     } catch (error) {
       console.error("Failed to fetch services:", error);
+      setError(
+        error instanceof Error
+          ? error.message
+          : "Greška pri učitavanju servisa",
+      );
     } finally {
       setLoading(false);
     }
@@ -209,7 +227,20 @@ export default function ServicesPage() {
             </Typography>
           </Box>
         ) : loading ? (
-          <Typography>Učitavanje...</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              py: 8,
+            }}
+          >
+            <CircularProgress size={60} />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
         ) : (
           <ServiceList
             services={services}

@@ -1,6 +1,13 @@
 "use client";
 
-import { Container, Typography, Box, Button } from "@mui/material";
+import {
+  Container,
+  Typography,
+  Box,
+  Button,
+  CircularProgress,
+  Alert,
+} from "@mui/material";
 import { Add } from "@mui/icons-material";
 import { useState, useEffect } from "react";
 import VehicleList from "@/components/VehicleList";
@@ -25,18 +32,44 @@ interface Vehicle {
 export default function VehiclesPage() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
 
   const fetchVehicles = async () => {
     try {
-      const response = await fetch("/api/vehicles");
-      if (response.ok) {
-        const data = await response.json();
-        setVehicles(data);
+      setLoading(true);
+      setError(null);
+
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
+      const response = await fetch("/api/vehicles", {
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          throw new Error("API endpoint nije pronađen");
+        }
+        throw new Error(`Greška: ${response.status}`);
       }
+
+      const data = await response.json();
+      setVehicles(data);
     } catch (error) {
-      console.error("Failed to fetch vehicles:", error);
+      if (error instanceof Error && error.name === "AbortError") {
+        setError("Zahtev je prekoračio vremensko ograničenje");
+      } else {
+        setError(
+          error instanceof Error
+            ? error.message
+            : "Greška pri učitavanju vozila",
+        );
+      }
+      setVehicles([]);
     } finally {
       setLoading(false);
     }
@@ -135,7 +168,20 @@ export default function VehiclesPage() {
         </Box>
 
         {loading ? (
-          <Typography>Učitavanje...</Typography>
+          <Box
+            sx={{
+              display: "flex",
+              justifyContent: "center",
+              alignItems: "center",
+              py: 8,
+            }}
+          >
+            <CircularProgress size={60} />
+          </Box>
+        ) : error ? (
+          <Alert severity="error" sx={{ mb: 2 }}>
+            {error}
+          </Alert>
         ) : (
           <VehicleList
             vehicles={vehicles}
