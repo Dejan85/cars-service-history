@@ -195,16 +195,18 @@ export default function VehicleDetailPage() {
 
   const calculateTotalCost = () => {
     if (!vehicle) return 0;
-    return vehicle.services.reduce((sum, service) => {
-      const itemsCost = service.items?.reduce((s, i) => s + i.cost, 0) || 0;
-      return sum + service.cost + itemsCost;
-    }, 0);
+    return vehicle.services
+      .filter((s) => !s.isPreviousOwner)
+      .reduce((sum, service) => {
+        const itemsCost = service.items?.reduce((s, i) => s + i.cost, 0) || 0;
+        return sum + service.cost + itemsCost;
+      }, 0);
   };
 
   const calculateMyServicesCost = () => {
     if (!vehicle) return 0;
     return vehicle.services
-      .filter((s) => !s.isPreviousOwner)
+      .filter((s) => !s.isPreviousOwner && !s.isOffroad)
       .reduce((sum, service) => {
         const itemsCost = service.items?.reduce((s, i) => s + i.cost, 0) || 0;
         return sum + service.cost + itemsCost;
@@ -346,8 +348,8 @@ export default function VehicleDetailPage() {
                 Poslednja kilometraža
               </Typography>
               <Typography variant="h6" color="primary">
-                {vehicle.services[0]?.mileage
-                  ? `${vehicle.services[0].mileage.toLocaleString()} km`
+                {vehicle.services.find((s) => !s.isPreviousOwner)?.mileage
+                  ? `${vehicle.services.find((s) => !s.isPreviousOwner)!.mileage.toLocaleString()} km`
                   : "-"}
               </Typography>
             </Grid>
@@ -371,84 +373,102 @@ export default function VehicleDetailPage() {
             </Grid>
             <Grid item xs={12} sm={6} md={3}>
               <Typography variant="caption" color="text.secondary">
-                Broj mojih servisa
+                Ukupan broj servisa
               </Typography>
-              <Typography variant="h6">
-                {
-                  vehicle.services.filter(
-                    (s) => !s.isPreviousOwner && !s.isOffroad,
-                  ).length
-                }
-              </Typography>
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 2 }} />
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                Troškovi preth. vlasnika
-              </Typography>
-              <Typography variant="h6" color="warning.main">
-                €{calculatePreviousOwnerCost().toFixed(2)}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6}>
-              <Typography variant="caption" color="text.secondary">
-                Broj servisa preth. vlasnika
-              </Typography>
-              <Typography variant="h6" color="warning.main">
-                {
-                  vehicle.services.filter(
-                    (s) => s.isPreviousOwner && !s.isOffroad,
-                  ).length
-                }
-              </Typography>
-            </Grid>
-          </Grid>
-
-          <Divider sx={{ my: 2 }} />
-
-          <Grid container spacing={2}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Typography variant="caption" color="text.secondary">
-                Moji troškovi
-              </Typography>
-              <Typography variant="h6" color="success.main">
-                €{calculateMyServicesCost().toFixed(2)}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Typography variant="caption" color="text.secondary">
-                Broj mojih servisa
-              </Typography>
-              <Typography variant="h6" color="success.main">
-                {
-                  vehicle.services.filter(
-                    (s) => !s.isPreviousOwner && !s.isOffroad,
-                  ).length
-                }
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Typography variant="caption" color="text.secondary">
-                Offroad modifikacije
-              </Typography>
-              <Typography variant="h6" color="info.main">
-                €{calculateOffroadCost().toFixed(2)}
-              </Typography>
-            </Grid>
-            <Grid item xs={12} sm={6} md={3}>
-              <Typography variant="caption" color="text.secondary">
-                Broj offroad modifikacija
-              </Typography>
-              <Typography variant="h6" color="info.main">
-                {vehicle.services.filter((s) => s.isOffroad).length}
-              </Typography>
+              <Typography variant="h6">{vehicle.services.length}</Typography>
             </Grid>
           </Grid>
         </Paper>
+
+        <Grid container spacing={3} sx={{ mb: 3 }}>
+          {/* Prethodni vlasnik */}
+          <Grid item xs={12} md={4}>
+            <Paper
+              sx={{
+                p: 3,
+                bgcolor: "warning.light",
+                color: "warning.contrastText",
+              }}
+            >
+              <Typography variant="h6" gutterBottom fontWeight="bold">
+                Prethodni vlasnik
+              </Typography>
+              <Divider sx={{ my: 2, bgcolor: "warning.main", opacity: 0.3 }} />
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption">Troškovi</Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  €{calculatePreviousOwnerCost().toFixed(2)}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption">Broj servisa</Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  {
+                    vehicle.services.filter(
+                      (s) => s.isPreviousOwner && !s.isOffroad,
+                    ).length
+                  }
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* Moji redovni servisi */}
+          <Grid item xs={12} md={4}>
+            <Paper
+              sx={{
+                p: 3,
+                bgcolor: "success.light",
+                color: "success.contrastText",
+              }}
+            >
+              <Typography variant="h6" gutterBottom fontWeight="bold">
+                Moji redovni servisi
+              </Typography>
+              <Divider sx={{ my: 2, bgcolor: "success.main", opacity: 0.3 }} />
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption">Troškovi</Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  €{calculateMyServicesCost().toFixed(2)}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption">Broj servisa</Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  {
+                    vehicle.services.filter(
+                      (s) => !s.isPreviousOwner && !s.isOffroad,
+                    ).length
+                  }
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
+
+          {/* Offroad modifikacije */}
+          <Grid item xs={12} md={4}>
+            <Paper
+              sx={{ p: 3, bgcolor: "info.light", color: "info.contrastText" }}
+            >
+              <Typography variant="h6" gutterBottom fontWeight="bold">
+                Offroad modifikacije
+              </Typography>
+              <Divider sx={{ my: 2, bgcolor: "info.main", opacity: 0.3 }} />
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="caption">Troškovi</Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  €{calculateOffroadCost().toFixed(2)}
+                </Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption">Broj modifikacija</Typography>
+                <Typography variant="h5" fontWeight="bold">
+                  {vehicle.services.filter((s) => s.isOffroad).length}
+                </Typography>
+              </Box>
+            </Paper>
+          </Grid>
+        </Grid>
 
         <Box
           sx={{

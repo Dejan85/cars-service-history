@@ -1,5 +1,5 @@
 import { Container, Box, Typography, Button, Paper } from "@mui/material";
-import { DirectionsCar, Build } from "@mui/icons-material";
+import { DirectionsCar, Analytics } from "@mui/icons-material";
 import Link from "next/link";
 
 export default function Home() {
@@ -66,19 +66,19 @@ export default function Home() {
             gap: 2,
           }}
         >
-          <Build sx={{ fontSize: 60, color: "secondary.main" }} />
-          <Typography variant="h5">Servisi</Typography>
+          <Analytics sx={{ fontSize: 60, color: "success.main" }} />
+          <Typography variant="h5">Analitika</Typography>
           <Typography variant="body2" color="text.secondary" align="center">
-            Evidentirajte servise i troškove održavanja
+            Pratite pouzdanost i troškove održavanja
           </Typography>
           <Button
             variant="contained"
-            color="secondary"
+            color="success"
             component={Link}
-            href="/services"
+            href="/analytics"
             sx={{ mt: 2 }}
           >
-            Pregled servisa
+            Pregled analitike
           </Button>
         </Paper>
       </Box>

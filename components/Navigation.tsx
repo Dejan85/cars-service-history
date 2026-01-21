@@ -1,10 +1,13 @@
 "use client";
 
 import { AppBar, Toolbar, Typography, Button, Container } from "@mui/material";
-import { DirectionsCar, Build, Home } from "@mui/icons-material";
+import { DirectionsCar, Home, Analytics } from "@mui/icons-material";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 
 export default function Navigation() {
+  const pathname = usePathname();
+
   return (
     <AppBar position="static">
       <Container maxWidth="lg">
@@ -28,6 +31,16 @@ export default function Navigation() {
             component={Link}
             href="/"
             startIcon={<Home />}
+            sx={{
+              bgcolor:
+                pathname === "/" ? "rgba(255, 255, 255, 0.2)" : "transparent",
+              "&:hover": {
+                bgcolor:
+                  pathname === "/"
+                    ? "rgba(255, 255, 255, 0.25)"
+                    : "rgba(255, 255, 255, 0.1)",
+              },
+            }}
           >
             Početna
           </Button>
@@ -36,16 +49,38 @@ export default function Navigation() {
             component={Link}
             href="/vehicles"
             startIcon={<DirectionsCar />}
+            sx={{
+              bgcolor: pathname?.startsWith("/vehicles")
+                ? "rgba(255, 255, 255, 0.2)"
+                : "transparent",
+              "&:hover": {
+                bgcolor: pathname?.startsWith("/vehicles")
+                  ? "rgba(255, 255, 255, 0.25)"
+                  : "rgba(255, 255, 255, 0.1)",
+              },
+            }}
           >
             Vozila
           </Button>
           <Button
             color="inherit"
             component={Link}
-            href="/services"
-            startIcon={<Build />}
+            href="/analytics"
+            startIcon={<Analytics />}
+            sx={{
+              bgcolor:
+                pathname === "/analytics"
+                  ? "rgba(255, 255, 255, 0.2)"
+                  : "transparent",
+              "&:hover": {
+                bgcolor:
+                  pathname === "/analytics"
+                    ? "rgba(255, 255, 255, 0.25)"
+                    : "rgba(255, 255, 255, 0.1)",
+              },
+            }}
           >
-            Servisi
+            Analitika
           </Button>
         </Toolbar>
       </Container>
