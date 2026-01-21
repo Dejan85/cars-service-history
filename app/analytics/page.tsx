@@ -55,6 +55,7 @@ export default function AnalyticsPage() {
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
   const [loading, setLoading] = useState(true);
   const [selectedVehicle, setSelectedVehicle] = useState<Vehicle | null>(null);
+  const [selectedYear, setSelectedYear] = useState<string>("");
 
   useEffect(() => {
     fetchVehicles();
@@ -225,6 +226,47 @@ export default function AnalyticsPage() {
   const totalServices = getUserServices().length;
   const totalMileage = calculateTotalMileage();
   const yearlyMileage = calculateYearlyMileage();
+
+  const getAvailableYears = () => {
+    const services = getUserServices();
+    if (services.length === 0) return [];
+
+    const years = services.map((s) => dayjs(s.date).year());
+    const uniqueYears = Array.from(new Set(years)).sort((a, b) => b - a);
+    return uniqueYears;
+  };
+
+  const calculateYearlyData = (year: number) => {
+    const services = getUserServices();
+    const yearServices = services.filter((s) => dayjs(s.date).year() === year);
+
+    if (yearServices.length === 0) {
+      return { totalCost: 0, mileage: null, serviceCount: 0 };
+    }
+
+    const totalCost = yearServices.reduce((sum, s) => {
+      const itemsCost = s.items?.reduce((s, i) => s + i.cost, 0) || 0;
+      return sum + s.cost + itemsCost;
+    }, 0);
+
+    return {
+      totalCost,
+      mileage: null, // Privremeno onemogućeno - potreban bolji algoritam
+      serviceCount: yearServices.length,
+    };
+  };
+
+  const availableYears = getAvailableYears();
+  const yearlyData = selectedYear
+    ? calculateYearlyData(parseInt(selectedYear))
+    : null;
+
+  // Postavi trenutnu godinu kao default
+  useEffect(() => {
+    if (availableYears.length > 0 && !selectedYear) {
+      setSelectedYear(availableYears[0].toString());
+    }
+  }, [availableYears, selectedYear]);
 
   if (loading) {
     return (
@@ -432,6 +474,83 @@ export default function AnalyticsPage() {
                 </Box>
               ))}
             </Paper>
+
+            {availableYears.length > 0 && (
+              <>
+                <Divider sx={{ my: 4 }} />
+
+                <Box sx={{ mb: 3 }}>
+                  <Typography variant="h5" gutterBottom>
+                    Godišnja analiza
+                  </Typography>
+                  <TextField
+                    select
+                    label="Izaberite godinu"
+                    value={selectedYear}
+                    onChange={(e) => setSelectedYear(e.target.value)}
+                    sx={{ minWidth: 200, mt: 2 }}
+                  >
+                    {availableYears.map((year) => (
+                      <MenuItem key={year} value={year.toString()}>
+                        {year}
+                      </MenuItem>
+                    ))}
+                  </TextField>
+                </Box>
+
+                {yearlyData && (
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} md={6}>
+                      <Paper
+                        sx={{
+                          p: 3,
+                          textAlign: "center",
+                          bgcolor: "success.light",
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          color="success.contrastText"
+                        >
+                          Ukupni troškovi {selectedYear}
+                        </Typography>
+                        <Typography
+                          variant="h4"
+                          fontWeight="bold"
+                          color="success.contrastText"
+                        >
+                          €{yearlyData.totalCost.toFixed(2)}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+
+                    <Grid item xs={12} md={6}>
+                      <Paper
+                        sx={{
+                          p: 3,
+                          textAlign: "center",
+                          bgcolor: "warning.light",
+                        }}
+                      >
+                        <Typography
+                          variant="caption"
+                          color="warning.contrastText"
+                        >
+                          Broj servisa {selectedYear}
+                        </Typography>
+                        <Typography
+                          variant="h4"
+                          fontWeight="bold"
+                          color="warning.contrastText"
+                        >
+                          {yearlyData.serviceCount}
+                        </Typography>
+                      </Paper>
+                    </Grid>
+                  </Grid>
+                )}
+              </>
+            )}
           </>
         )}
       </Box>

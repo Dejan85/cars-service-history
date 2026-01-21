@@ -7,6 +7,12 @@ import {
   Button,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  TextField,
 } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import { useState, useEffect } from "react";
@@ -35,6 +41,9 @@ export default function VehiclesPage() {
   const [error, setError] = useState<string | null>(null);
   const [formOpen, setFormOpen] = useState(false);
   const [editingVehicle, setEditingVehicle] = useState<Vehicle | null>(null);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [vehicleToDelete, setVehicleToDelete] = useState<string | null>(null);
+  const [deleteConfirmText, setDeleteConfirmText] = useState("");
 
   const fetchVehicles = async () => {
     try {
@@ -116,21 +125,31 @@ export default function VehiclesPage() {
     }
   };
 
-  const handleDeleteVehicle = async (id: string) => {
-    if (!confirm("Da li ste sigurni da želite da obrišete ovo vozilo?")) {
-      return;
-    }
+  const handleDeleteVehicle = (id: string) => {
+    setVehicleToDelete(id);
+    setDeleteConfirmText("");
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!vehicleToDelete || deleteConfirmText !== "DELETE") return;
 
     try {
-      const response = await fetch(`/api/vehicles/${id}`, {
+      const response = await fetch(`/api/vehicles/${vehicleToDelete}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
-        fetchVehicles();
+        await fetchVehicles();
+        setDeleteDialogOpen(false);
+        setVehicleToDelete(null);
+        setDeleteConfirmText("");
       }
     } catch (error) {
       console.error("Failed to delete vehicle:", error);
+      setDeleteDialogOpen(false);
+      setVehicleToDelete(null);
+      setDeleteConfirmText("");
     }
   };
 
@@ -207,6 +226,50 @@ export default function VehiclesPage() {
             : undefined
         }
       />
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => {
+          setDeleteDialogOpen(false);
+          setDeleteConfirmText("");
+        }}
+      >
+        <DialogTitle>Potvrda brisanja</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ mb: 2 }}>
+            Da li ste sigurni da želite da obrišete ovo vozilo? Svi servisi
+            vezani za ovo vozilo će takođe biti obrisani.
+          </DialogContentText>
+          <DialogContentText sx={{ mb: 2 }}>
+            Ukucajte <strong>DELETE</strong> da potvrdite:
+          </DialogContentText>
+          <TextField
+            fullWidth
+            value={deleteConfirmText}
+            onChange={(e) => setDeleteConfirmText(e.target.value)}
+            placeholder="DELETE"
+            autoFocus
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button
+            onClick={() => {
+              setDeleteDialogOpen(false);
+              setDeleteConfirmText("");
+            }}
+          >
+            Otkaži
+          </Button>
+          <Button
+            onClick={confirmDelete}
+            color="error"
+            variant="contained"
+            disabled={deleteConfirmText !== "DELETE"}
+          >
+            Obriši
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }
