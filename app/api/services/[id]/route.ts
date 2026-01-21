@@ -44,6 +44,7 @@ export async function PUT(
       notes,
       isPreviousOwner,
       isOffroad,
+      isSmallService,
       items,
     } = body;
     body;
@@ -63,6 +64,7 @@ export async function PUT(
         notes,
         isPreviousOwner: isPreviousOwner || false,
         isOffroad: isOffroad || false,
+        isSmallService: isSmallService || false,
         items: {
           create:
             items?.map((item: any) => ({

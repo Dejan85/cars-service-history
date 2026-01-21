@@ -33,6 +33,7 @@ interface Service {
   cost: number;
   isPreviousOwner: boolean;
   isOffroad: boolean;
+  isSmallService: boolean;
   items?: ServiceItem[];
 }
 
@@ -170,10 +171,60 @@ export default function AnalyticsPage() {
     return monthsDiff > 0 ? totalCost / monthsDiff : totalCost;
   };
 
+  const calculateTotalMileage = () => {
+    const services = getUserServices();
+    if (services.length === 0) return 0;
+
+    const firstMileage = services[services.length - 1].mileage;
+    const lastMileage = services[0].mileage;
+
+    return lastMileage - firstMileage;
+  };
+
+  const calculateYearlyMileage = () => {
+    const services = getUserServices();
+    const smallServices = services.filter((s) => s.isSmallService);
+
+    if (smallServices.length < 2) {
+      // Ako nema dovoljno malih servisa, koristi sve servise
+      if (services.length < 2) return 0;
+
+      const firstService = services[services.length - 1];
+      const lastService = services[0];
+      const kmDiff = lastService.mileage - firstService.mileage;
+      const daysDiff = dayjs(lastService.date).diff(
+        dayjs(firstService.date),
+        "day",
+      );
+
+      if (daysDiff === 0) return 0;
+      return Math.round((kmDiff / daysDiff) * 365);
+    }
+
+    // Računaj prosečnu km između malih servisa
+    let totalKm = 0;
+    let totalDays = 0;
+
+    for (let i = 0; i < smallServices.length - 1; i++) {
+      const kmDiff = smallServices[i].mileage - smallServices[i + 1].mileage;
+      const daysDiff = dayjs(smallServices[i].date).diff(
+        dayjs(smallServices[i + 1].date),
+        "day",
+      );
+      totalKm += Math.abs(kmDiff);
+      totalDays += Math.abs(daysDiff);
+    }
+
+    if (totalDays === 0) return 0;
+    return Math.round((totalKm / totalDays) * 365);
+  };
+
   const monthlyStats = calculateMonthlyStats();
   const avgDaysBetween = calculateAverageDaysBetweenServices();
   const monthlyAverage = calculateMonthlyAverage();
   const totalServices = getUserServices().length;
+  const totalMileage = calculateTotalMileage();
+  const yearlyMileage = calculateYearlyMileage();
 
   if (loading) {
     return (
@@ -293,6 +344,40 @@ export default function AnalyticsPage() {
                       : avgDaysBetween > 30
                         ? "Srednja"
                         : "Niska"}
+                  </Typography>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12} md={3}>
+                <Paper
+                  sx={{ p: 3, textAlign: "center", bgcolor: "secondary.light" }}
+                >
+                  <Typography variant="caption" color="secondary.contrastText">
+                    Pređena kilometraža
+                  </Typography>
+                  <Typography
+                    variant="h4"
+                    fontWeight="bold"
+                    color="secondary.contrastText"
+                  >
+                    {totalMileage.toLocaleString()} km
+                  </Typography>
+                </Paper>
+              </Grid>
+
+              <Grid item xs={12} md={3}>
+                <Paper
+                  sx={{ p: 3, textAlign: "center", bgcolor: "error.light" }}
+                >
+                  <Typography variant="caption" color="error.contrastText">
+                    Godišnja kilometraža
+                  </Typography>
+                  <Typography
+                    variant="h4"
+                    fontWeight="bold"
+                    color="error.contrastText"
+                  >
+                    {yearlyMileage.toLocaleString()}
                   </Typography>
                 </Paper>
               </Grid>

@@ -30,6 +30,7 @@ model Service {
   notes           String?
   isPreviousOwner Boolean  @default(false)
   isOffroad       Boolean  @default(false)
+  isSmallService  Boolean  @default(false)
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
   
@@ -40,6 +41,7 @@ model Service {
   @@index([date])
   @@index([isPreviousOwner])
   @@index([isOffroad])
+  @@index([isSmallService])
 }
 
 model ServiceItem {

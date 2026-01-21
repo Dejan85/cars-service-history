@@ -41,6 +41,7 @@ export async function POST(request: NextRequest) {
       notes,
       isPreviousOwner,
       isOffroad,
+      isSmallService,
       items,
     } = body;
 
@@ -61,6 +62,7 @@ export async function POST(request: NextRequest) {
         notes,
         isPreviousOwner: isPreviousOwner || false,
         isOffroad: isOffroad || false,
+        isSmallService: isSmallService || false,
         items: {
           create:
             items?.map((item: any) => ({

@@ -38,6 +38,7 @@ export interface ServiceFormData {
   notes?: string;
   isPreviousOwner?: boolean;
   isOffroad?: boolean;
+  isSmallService?: boolean;
   items: ServiceItem[];
 }
 
@@ -63,6 +64,7 @@ export default function ServiceForm({
       notes: "",
       isPreviousOwner: false,
       isOffroad: false,
+      isSmallService: false,
       items: [],
     },
   );
@@ -80,6 +82,7 @@ export default function ServiceForm({
         notes: "",
         isPreviousOwner: false,
         isOffroad: false,
+        isSmallService: false,
         items: [],
       });
     }
@@ -217,6 +220,22 @@ export default function ServiceForm({
                   />
                 }
                 label="Offroad modifikacija"
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.isSmallService || false}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        isSmallService: e.target.checked,
+                      })
+                    }
+                    color="secondary"
+                  />
+                }
+                label="Mali servis"
               />
 
               <Divider sx={{ my: 1 }} />

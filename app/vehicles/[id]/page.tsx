@@ -46,6 +46,7 @@ interface Service {
   notes?: string | null;
   isPreviousOwner?: boolean;
   isOffroad?: boolean;
+  isSmallService?: boolean;
   items?: Array<{
     description: string;
     cost: number;
@@ -552,6 +553,7 @@ export default function VehicleDetailPage() {
                 notes: editingService.notes || "",
                 isPreviousOwner: editingService.isPreviousOwner || false,
                 isOffroad: editingService.isOffroad || false,
+                isSmallService: editingService.isSmallService || false,
                 items:
                   editingService.items?.map((item) => ({
                     description: item.description,
