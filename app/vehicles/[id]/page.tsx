@@ -10,6 +10,13 @@ import {
   Divider,
   CircularProgress,
   Alert,
+  FormControlLabel,
+  Checkbox,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
 } from "@mui/material";
 import { ArrowBack, Add, Edit } from "@mui/icons-material";
 import Link from "next/link";
@@ -37,6 +44,8 @@ interface Service {
   description: string;
   cost: number;
   notes?: string | null;
+  isPreviousOwner?: boolean;
+  isOffroad?: boolean;
   items?: Array<{
     description: string;
     cost: number;
@@ -53,6 +62,11 @@ export default function VehicleDetailPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [vehicleFormOpen, setVehicleFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
+  const [showPreviousOwner, setShowPreviousOwner] = useState(false);
+  const [showMyServices, setShowMyServices] = useState(true);
+  const [showOffroad, setShowOffroad] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
 
   const fetchVehicle = async () => {
     try {
@@ -127,21 +141,28 @@ export default function VehicleDetailPage() {
     }
   };
 
-  const handleDeleteService = async (id: string) => {
-    if (!confirm("Da li ste sigurni da želite da obrišete ovaj servis?")) {
-      return;
-    }
+  const handleDeleteService = (id: string) => {
+    setServiceToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!serviceToDelete) return;
 
     try {
-      const response = await fetch(`/api/services/${id}`, {
+      const response = await fetch(`/api/services/${serviceToDelete}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
-        fetchVehicle();
+        await fetchVehicle();
+        setDeleteDialogOpen(false);
+        setServiceToDelete(null);
       }
     } catch (error) {
       console.error("Failed to delete service:", error);
+      setDeleteDialogOpen(false);
+      setServiceToDelete(null);
     }
   };
 
@@ -178,6 +199,36 @@ export default function VehicleDetailPage() {
       const itemsCost = service.items?.reduce((s, i) => s + i.cost, 0) || 0;
       return sum + service.cost + itemsCost;
     }, 0);
+  };
+
+  const calculateMyServicesCost = () => {
+    if (!vehicle) return 0;
+    return vehicle.services
+      .filter((s) => !s.isPreviousOwner)
+      .reduce((sum, service) => {
+        const itemsCost = service.items?.reduce((s, i) => s + i.cost, 0) || 0;
+        return sum + service.cost + itemsCost;
+      }, 0);
+  };
+
+  const calculatePreviousOwnerCost = () => {
+    if (!vehicle) return 0;
+    return vehicle.services
+      .filter((s) => s.isPreviousOwner)
+      .reduce((sum, service) => {
+        const itemsCost = service.items?.reduce((s, i) => s + i.cost, 0) || 0;
+        return sum + service.cost + itemsCost;
+      }, 0);
+  };
+
+  const calculateOffroadCost = () => {
+    if (!vehicle) return 0;
+    return vehicle.services
+      .filter((s) => s.isOffroad)
+      .reduce((sum, service) => {
+        const itemsCost = service.items?.reduce((s, i) => s + i.cost, 0) || 0;
+        return sum + service.cost + itemsCost;
+      }, 0);
   };
 
   if (loading) {
@@ -290,7 +341,7 @@ export default function VehicleDetailPage() {
           <Divider sx={{ my: 2 }} />
 
           <Grid container spacing={2}>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <Typography variant="caption" color="text.secondary">
                 Poslednja kilometraža
               </Typography>
@@ -300,7 +351,7 @@ export default function VehicleDetailPage() {
                   : "-"}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <Typography variant="caption" color="text.secondary">
                 Ukupni troškovi
               </Typography>
@@ -308,7 +359,7 @@ export default function VehicleDetailPage() {
                 €{calculateTotalCost().toFixed(2)}
               </Typography>
             </Grid>
-            <Grid item xs={12} sm={4}>
+            <Grid item xs={12} sm={6} md={3}>
               <Typography variant="caption" color="text.secondary">
                 Poslednji servis
               </Typography>
@@ -316,6 +367,84 @@ export default function VehicleDetailPage() {
                 {vehicle.services[0]
                   ? dayjs(vehicle.services[0].date).format("DD.MM.YYYY")
                   : "-"}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="caption" color="text.secondary">
+                Broj mojih servisa
+              </Typography>
+              <Typography variant="h6">
+                {
+                  vehicle.services.filter(
+                    (s) => !s.isPreviousOwner && !s.isOffroad,
+                  ).length
+                }
+              </Typography>
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 2 }} />
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="caption" color="text.secondary">
+                Troškovi preth. vlasnika
+              </Typography>
+              <Typography variant="h6" color="warning.main">
+                €{calculatePreviousOwnerCost().toFixed(2)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6}>
+              <Typography variant="caption" color="text.secondary">
+                Broj servisa preth. vlasnika
+              </Typography>
+              <Typography variant="h6" color="warning.main">
+                {
+                  vehicle.services.filter(
+                    (s) => s.isPreviousOwner && !s.isOffroad,
+                  ).length
+                }
+              </Typography>
+            </Grid>
+          </Grid>
+
+          <Divider sx={{ my: 2 }} />
+
+          <Grid container spacing={2}>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="caption" color="text.secondary">
+                Moji troškovi
+              </Typography>
+              <Typography variant="h6" color="success.main">
+                €{calculateMyServicesCost().toFixed(2)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="caption" color="text.secondary">
+                Broj mojih servisa
+              </Typography>
+              <Typography variant="h6" color="success.main">
+                {
+                  vehicle.services.filter(
+                    (s) => !s.isPreviousOwner && !s.isOffroad,
+                  ).length
+                }
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="caption" color="text.secondary">
+                Offroad modifikacije
+              </Typography>
+              <Typography variant="h6" color="info.main">
+                €{calculateOffroadCost().toFixed(2)}
+              </Typography>
+            </Grid>
+            <Grid item xs={12} sm={6} md={3}>
+              <Typography variant="caption" color="text.secondary">
+                Broj offroad modifikacija
+              </Typography>
+              <Typography variant="h6" color="info.main">
+                {vehicle.services.filter((s) => s.isOffroad).length}
               </Typography>
             </Grid>
           </Grid>
@@ -341,8 +470,47 @@ export default function VehicleDetailPage() {
           </Button>
         </Box>
 
+        <Box sx={{ mb: 2, display: "flex", gap: 3 }}>
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showPreviousOwner}
+                onChange={(e) => setShowPreviousOwner(e.target.checked)}
+                color="warning"
+              />
+            }
+            label="Prethodni vlasnik"
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showMyServices}
+                onChange={(e) => setShowMyServices(e.target.checked)}
+                color="success"
+              />
+            }
+            label="Moji redovni servisi"
+          />
+          <FormControlLabel
+            control={
+              <Checkbox
+                checked={showOffroad}
+                onChange={(e) => setShowOffroad(e.target.checked)}
+                color="info"
+              />
+            }
+            label="Offroad modifikacije"
+          />
+        </Box>
+
         <ServiceList
-          services={vehicle.services}
+          services={vehicle.services.filter((s) => {
+            if (s.isPreviousOwner && s.isOffroad)
+              return showPreviousOwner && showOffroad;
+            if (s.isPreviousOwner) return showPreviousOwner;
+            if (s.isOffroad) return showOffroad;
+            return showMyServices;
+          })}
           onEdit={openEditForm}
           onDelete={handleDeleteService}
           showVehicle={false}
@@ -362,6 +530,8 @@ export default function VehicleDetailPage() {
                 description: editingService.description,
                 cost: editingService.cost.toString(),
                 notes: editingService.notes || "",
+                isPreviousOwner: editingService.isPreviousOwner || false,
+                isOffroad: editingService.isOffroad || false,
                 items:
                   editingService.items?.map((item) => ({
                     description: item.description,
@@ -384,6 +554,24 @@ export default function VehicleDetailPage() {
           plateNumber: vehicle.plateNumber || "",
         }}
       />
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Potvrda brisanja</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Da li ste sigurni da želite da obrišete ovaj servis?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Otkaži</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Obriši
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

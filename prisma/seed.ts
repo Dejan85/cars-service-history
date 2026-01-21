@@ -300,6 +300,7 @@ async function main() {
     const service = await prisma.service.create({
       data: {
         vehicleId: vehicle.id,
+        isPreviousOwner: true, // Svi seed servisi su od prethodnog vlasnika
         ...serviceData,
       },
       include: {

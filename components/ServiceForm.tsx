@@ -11,13 +11,15 @@ import {
   IconButton,
   Typography,
   Divider,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { Add, Delete } from "@mui/icons-material";
 import { DatePicker } from "@mui/x-date-pickers/DatePicker";
 import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
 import { AdapterDayjs } from "@mui/x-date-pickers/AdapterDayjs";
 import dayjs, { Dayjs } from "dayjs";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
 interface ServiceFormProps {
   open: boolean;
@@ -34,6 +36,8 @@ export interface ServiceFormData {
   description: string;
   cost: string;
   notes?: string;
+  isPreviousOwner?: boolean;
+  isOffroad?: boolean;
   items: ServiceItem[];
 }
 
@@ -57,9 +61,29 @@ export default function ServiceForm({
       description: "",
       cost: "0",
       notes: "",
+      isPreviousOwner: false,
+      isOffroad: false,
       items: [],
     },
   );
+
+  useEffect(() => {
+    if (initialData) {
+      setFormData(initialData);
+    } else {
+      setFormData({
+        vehicleId: vehicleId || "",
+        date: dayjs(),
+        mileage: "",
+        description: "",
+        cost: "0",
+        notes: "",
+        isPreviousOwner: false,
+        isOffroad: false,
+        items: [],
+      });
+    }
+  }, [initialData, vehicleId]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,6 +187,36 @@ export default function ServiceForm({
                 fullWidth
                 multiline
                 rows={2}
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.isPreviousOwner || false}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        isPreviousOwner: e.target.checked,
+                      })
+                    }
+                  />
+                }
+                label="Servis prethodnog vlasnika"
+              />
+
+              <FormControlLabel
+                control={
+                  <Checkbox
+                    checked={formData.isOffroad || false}
+                    onChange={(e) =>
+                      setFormData({
+                        ...formData,
+                        isOffroad: e.target.checked,
+                      })
+                    }
+                  />
+                }
+                label="Offroad modifikacija"
               />
 
               <Divider sx={{ my: 1 }} />

@@ -9,6 +9,13 @@ import {
   TextField,
   CircularProgress,
   Alert,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  FormControlLabel,
+  Checkbox,
 } from "@mui/material";
 import { Add } from "@mui/icons-material";
 import { useState, useEffect } from "react";
@@ -30,6 +37,8 @@ interface Service {
   description: string;
   cost: number;
   notes?: string | null;
+  isPreviousOwner?: boolean;
+  isOffroad?: boolean;
   vehicle?: {
     make: string;
     model: string;
@@ -48,6 +57,12 @@ export default function ServicesPage() {
   const [formOpen, setFormOpen] = useState(false);
   const [editingService, setEditingService] = useState<Service | null>(null);
   const [selectedVehicleId, setSelectedVehicleId] = useState<string>("");
+  const [showPreviousOwner, setShowPreviousOwner] = useState(false);
+  const [showMyServices, setShowMyServices] = useState(true);
+  const [showOffroad, setShowOffroad] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [serviceToDelete, setServiceToDelete] = useState<string | null>(null);
 
   const fetchVehicles = async () => {
     try {
@@ -151,21 +166,28 @@ export default function ServicesPage() {
     }
   };
 
-  const handleDeleteService = async (id: string) => {
-    if (!confirm("Da li ste sigurni da želite da obrišete ovaj servis?")) {
-      return;
-    }
+  const handleDeleteService = (id: string) => {
+    setServiceToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (!serviceToDelete) return;
 
     try {
-      const response = await fetch(`/api/services/${id}`, {
+      const response = await fetch(`/api/services/${serviceToDelete}`, {
         method: "DELETE",
       });
 
       if (response.ok) {
-        fetchServices(selectedVehicleId || undefined);
+        await fetchServices(selectedVehicleId || undefined);
+        setDeleteDialogOpen(false);
+        setServiceToDelete(null);
       }
     } catch (error) {
       console.error("Failed to delete service:", error);
+      setDeleteDialogOpen(false);
+      setServiceToDelete(null);
     }
   };
 
@@ -178,6 +200,17 @@ export default function ServicesPage() {
     setFormOpen(false);
     setEditingService(null);
   };
+
+  const filteredServices = services.filter((service) => {
+    // If service is previous owner's and checkbox is unchecked, filter out
+    if (service.isPreviousOwner && !showPreviousOwner) return false;
+    // If service is user's regular service and checkbox is unchecked, filter out
+    if (!service.isPreviousOwner && !service.isOffroad && !showMyServices)
+      return false;
+    // If service is offroad and checkbox is unchecked, filter out
+    if (service.isOffroad && !showOffroad) return false;
+    return true;
+  });
 
   return (
     <Container maxWidth="lg">
@@ -203,7 +236,7 @@ export default function ServicesPage() {
           </Button>
         </Box>
 
-        <Box sx={{ mb: 3 }}>
+        <Box sx={{ mb: 3, display: "flex", gap: 2, flexWrap: "wrap" }}>
           <TextField
             select
             label="Filter po vozilu"
@@ -218,6 +251,39 @@ export default function ServicesPage() {
               </MenuItem>
             ))}
           </TextField>
+
+          <Box sx={{ display: "flex", gap: 3, alignItems: "center" }}>
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showPreviousOwner}
+                  onChange={(e) => setShowPreviousOwner(e.target.checked)}
+                  color="warning"
+                />
+              }
+              label="Prethodni vlasnik"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showMyServices}
+                  onChange={(e) => setShowMyServices(e.target.checked)}
+                  color="success"
+                />
+              }
+              label="Moji redovni servisi"
+            />
+            <FormControlLabel
+              control={
+                <Checkbox
+                  checked={showOffroad}
+                  onChange={(e) => setShowOffroad(e.target.checked)}
+                  color="info"
+                />
+              }
+              label="Offroad modifikacije"
+            />
+          </Box>
         </Box>
 
         {vehicles.length === 0 ? (
@@ -243,7 +309,7 @@ export default function ServicesPage() {
           </Alert>
         ) : (
           <ServiceList
-            services={services}
+            services={filteredServices}
             onEdit={openEditForm}
             onDelete={handleDeleteService}
             showVehicle={!selectedVehicleId}
@@ -265,6 +331,8 @@ export default function ServicesPage() {
                   description: editingService.description,
                   cost: editingService.cost.toString(),
                   notes: editingService.notes || "",
+                  isPreviousOwner: editingService.isPreviousOwner || false,
+                  isOffroad: editingService.isOffroad || false,
                   items:
                     editingService.items?.map((item) => ({
                       description: item.description,
@@ -275,6 +343,24 @@ export default function ServicesPage() {
           }
         />
       )}
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => setDeleteDialogOpen(false)}
+      >
+        <DialogTitle>Potvrda brisanja</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            Da li ste sigurni da želite da obrišete ovaj servis?
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteDialogOpen(false)}>Otkaži</Button>
+          <Button onClick={confirmDelete} color="error" variant="contained">
+            Obriši
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Container>
   );
 }

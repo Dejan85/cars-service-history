@@ -36,7 +36,17 @@ export async function PUT(
 ) {
   try {
     const body = await request.json();
-    const { date, mileage, description, cost, notes, items } = body;
+    const {
+      date,
+      mileage,
+      description,
+      cost,
+      notes,
+      isPreviousOwner,
+      isOffroad,
+      items,
+    } = body;
+    body;
 
     // Delete existing items
     await prisma.serviceItem.deleteMany({
@@ -51,6 +61,8 @@ export async function PUT(
         description,
         cost: parseFloat(cost) || 0,
         notes,
+        isPreviousOwner: isPreviousOwner || false,
+        isOffroad: isOffroad || false,
         items: {
           create:
             items?.map((item: any) => ({

@@ -32,7 +32,17 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { vehicleId, date, mileage, description, cost, notes, items } = body;
+    const {
+      vehicleId,
+      date,
+      mileage,
+      description,
+      cost,
+      notes,
+      isPreviousOwner,
+      isOffroad,
+      items,
+    } = body;
 
     if (!vehicleId || !date || !mileage || !description) {
       return NextResponse.json(
@@ -49,6 +59,8 @@ export async function POST(request: NextRequest) {
         description,
         cost: parseFloat(cost) || 0,
         notes,
+        isPreviousOwner: isPreviousOwner || false,
+        isOffroad: isOffroad || false,
         items: {
           create:
             items?.map((item: any) => ({

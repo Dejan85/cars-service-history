@@ -25,6 +25,8 @@ interface Service {
   description: string;
   cost: number;
   notes?: string | null;
+  isPreviousOwner?: boolean;
+  isOffroad?: boolean;
   vehicle?: {
     make: string;
     model: string;
@@ -53,16 +55,6 @@ export default function ServiceList({
 }: ServiceListProps) {
   const [sortField, setSortField] = useState<SortField>("date");
   const [sortOrder, setSortOrder] = useState<SortOrder>("desc");
-
-  if (services.length === 0) {
-    return (
-      <Box sx={{ textAlign: "center", py: 4 }}>
-        <Typography variant="body1" color="text.secondary">
-          Nema evidentiranih servisa.
-        </Typography>
-      </Box>
-    );
-  }
 
   const calculateTotalCost = (service: Service) => {
     const itemsCost =
@@ -94,13 +86,27 @@ export default function ServiceList({
           comparison = (a.items?.length || 0) - (b.items?.length || 0);
           break;
         case "cost":
-          comparison = calculateTotalCost(a) - calculateTotalCost(b);
+          const aCost =
+            a.cost + (a.items?.reduce((sum, item) => sum + item.cost, 0) || 0);
+          const bCost =
+            b.cost + (b.items?.reduce((sum, item) => sum + item.cost, 0) || 0);
+          comparison = aCost - bCost;
           break;
       }
 
       return sortOrder === "asc" ? comparison : -comparison;
     });
   }, [services, sortField, sortOrder]);
+
+  if (services.length === 0) {
+    return (
+      <Box sx={{ textAlign: "center", py: 4 }}>
+        <Typography variant="body1" color="text.secondary">
+          Nema evidentiranih servisa.
+        </Typography>
+      </Box>
+    );
+  }
 
   return (
     <TableContainer component={Paper}>
@@ -127,6 +133,7 @@ export default function ServiceList({
               </TableSortLabel>
             </TableCell>
             <TableCell>Opis</TableCell>
+            <TableCell>Vlasnik</TableCell>
             <TableCell align="center">
               <TableSortLabel
                 active={sortField === "items"}
@@ -170,13 +177,17 @@ export default function ServiceList({
                   </Typography>
                 )}
               </TableCell>
-              <TableCell align="center">
+              <TableCell>
                 <Chip
-                  label={service.items?.length || 0}
+                  label={
+                    service.isPreviousOwner ? "Prethodni vlasnik" : "Moj servis"
+                  }
                   size="small"
-                  color={service.items?.length ? "primary" : "default"}
+                  color={service.isPreviousOwner ? "warning" : "success"}
+                  variant={service.isPreviousOwner ? "outlined" : "filled"}
                 />
               </TableCell>
+              <TableCell align="center">{service.items?.length || 0}</TableCell>
               <TableCell align="right">
                 <Typography variant="body2" fontWeight="bold">
                   €{calculateTotalCost(service).toFixed(2)}
